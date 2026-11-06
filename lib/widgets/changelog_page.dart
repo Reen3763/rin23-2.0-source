@@ -224,3 +224,185 @@ class ChangelogData {
     ),
   ];
 }
+
+class _CreditsSection extends StatefulWidget {
+  final Function(bool)? onDevModeChanged;
+  const _CreditsSection({required this.onDevModeChanged});
+
+  @override
+  State<_CreditsSection> createState() => _CreditsSectionState();
+}
+
+class _CreditsSectionState extends State<_CreditsSection>
+    with SingleTickerProviderStateMixin {
+  int _tapCount = 0;
+  static const int _tapsRequired = 30;
+  late final AnimationController _controller;
+  late final Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 120),
+    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.82,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleAvatarTap() async {
+    setState(() => _tapCount++);
+
+    _controller.forward().then((_) => _controller.reverse());
+
+    if (_tapCount == _tapsRequired) {
+      final alreadyEnabled = await SettingsService.instance.getDevMode();
+      setState(() => _tapCount = 0);
+      if (!alreadyEnabled) {
+        await SettingsService.instance.setDevMode(true);
+        widget.onDevModeChanged?.call(true);
+      }
+      if (!mounted) return;
+      final color = Theme.of(context).colorScheme.primary;
+      final message = alreadyEnabled
+          ? 'Dev menu already enabled'
+          : 'Dev menu enabled';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: const Duration(seconds: 2),
+          backgroundColor: color,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Divider(
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.4),
+        ),
+        const SizedBox(height: 24),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            GestureDetector(
+              onTap: _handleAvatarTap,
+              child: ScaleTransition(
+                scale: _scaleAnimation,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: Image.asset(
+                    'assets/me.jpg',
+                    width: 48,
+                    height: 48,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const _BreathingText(text: 'Wadudi'),
+                    const SizedBox(width: 2),
+                    Image.asset(
+                      'assets/hearth.gif',
+                      filterQuality: FilterQuality.none,
+                    ),
+                  ],
+                ),
+                Text(
+                  'Main Developer',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+      ],
+    );
+  }
+}
+
+class _BreathingText extends StatefulWidget {
+  final String text;
+
+  const _BreathingText({required this.text});
+
+  @override
+  State<_BreathingText> createState() => _BreathingTextState();
+}
+
+class _BreathingTextState extends State<_BreathingText>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _breath;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2400),
+    )..repeat(reverse: true);
+
+    _breath = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    final secondary = Theme.of(context).colorScheme.secondary;
+
+    return AnimatedBuilder(
+      animation: _breath,
+      builder: (context, _) {
+        final color = Color.lerp(
+          primary.withValues(alpha: 0.6),
+          secondary,
+          _breath.value,
+        )!;
+
+        return Text(
+          widget.text,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: color,
+            shadows: [
+              Shadow(
+                color: primary.withValues(alpha: 0.4 * _breath.value),
+                blurRadius: 12 * _breath.value,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}

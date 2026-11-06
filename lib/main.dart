@@ -989,7 +989,7 @@ class _MainAppState extends State<MainApp> {
           setState(() {
             _selectedSearchType = filter;
           });
-          _sortOrder = orderBy;
+          _sortOrder = orderBy ?? _sortOrder;
           _performSearch('', filter: filter);
         },
       );

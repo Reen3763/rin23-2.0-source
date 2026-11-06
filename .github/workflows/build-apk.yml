@@ -46,6 +46,9 @@ jobs:
       - name: flutter gen-l10n
         run: flutter gen-l10n || true
 
+      - name: Analyze (fail fast on compile errors)
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
       - name: Build release APK
         run: flutter build apk --release --target-platform android-arm64 --dart-define-from-file=.env.json
 
